@@ -1,42 +1,35 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using MvcTask.Data;
 using MvcTask.Models;
+using MvcTask.Services;
 
 namespace MvcTask.Controllers
 {
     public class TaskListController : Controller
     {
-        private readonly MvcTaskItemContext _context;
+        private readonly TaskService _taskService;
 
-        public TaskListController(MvcTaskItemContext context)
+        public TaskListController(TaskService taskService)
         {
-            _context = context;
+            _taskService = taskService;
         }
 
         // GET: TaskList
         public async Task<IActionResult> Index()
         {
-              return _context.TaskItem != null ? 
-                          View(await _context.TaskItem.ToListAsync()) :
-                          Problem("Entity set 'MvcTaskItemContext.TaskItem'  is null.");
+            return View(await _taskService.GetAllAsync());
         }
 
         // GET: TaskList/Details/5
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(string? id)
         {
-            if (id == null || _context.TaskItem == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var taskItem = await _context.TaskItem
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var taskItem = await _taskService.GetAsync(id);
             if (taskItem == null)
             {
                 return NotFound();
@@ -56,26 +49,27 @@ namespace MvcTask.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,TaskTitle,StartDate,EndDate")] TaskItem taskItem)
+        public async Task<IActionResult> Create(
+            [Bind("Id,TaskTitle,StartDate,EndDate")] TaskItem taskItem
+        )
         {
             if (ModelState.IsValid)
             {
-                _context.Add(taskItem);
-                await _context.SaveChangesAsync();
+                await _taskService.CreateAsync(taskItem);
                 return RedirectToAction(nameof(Index));
             }
             return View(taskItem);
         }
 
         // GET: TaskList/Edit/5
-        public async Task<IActionResult> Edit(int? id)
+        public async Task<IActionResult> Edit(string? id)
         {
-            if (id == null || _context.TaskItem == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var taskItem = await _context.TaskItem.FindAsync(id);
+            var taskItem = await _taskService.GetAsync(id);
             if (taskItem == null)
             {
                 return NotFound();
@@ -88,7 +82,10 @@ namespace MvcTask.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,TaskTitle,StartDate,EndDate")] TaskItem taskItem)
+        public async Task<IActionResult> Edit(
+            string id,
+            [Bind("Id,TaskTitle,StartDate,EndDate")] TaskItem taskItem
+        )
         {
             if (id != taskItem.Id)
             {
@@ -99,18 +96,14 @@ namespace MvcTask.Controllers
             {
                 try
                 {
-                    _context.Update(taskItem);
-                    await _context.SaveChangesAsync();
+                    await _taskService.UpdateAsync(id, taskItem);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!TaskItemExists(taskItem.Id))
+                    var task = await _taskService.GetAsync(id);
+                    if (task == null)
                     {
                         return NotFound();
-                    }
-                    else
-                    {
-                        throw;
                     }
                 }
                 return RedirectToAction(nameof(Index));
@@ -119,15 +112,14 @@ namespace MvcTask.Controllers
         }
 
         // GET: TaskList/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        public async Task<IActionResult> Delete(string? id)
         {
-            if (id == null || _context.TaskItem == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var taskItem = await _context.TaskItem
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var taskItem = await _taskService.GetAsync(id);
             if (taskItem == null)
             {
                 return NotFound();
@@ -139,25 +131,10 @@ namespace MvcTask.Controllers
         // POST: TaskList/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(string id)
         {
-            if (_context.TaskItem == null)
-            {
-                return Problem("Entity set 'MvcTaskItemContext.TaskItem'  is null.");
-            }
-            var taskItem = await _context.TaskItem.FindAsync(id);
-            if (taskItem != null)
-            {
-                _context.TaskItem.Remove(taskItem);
-            }
-            
-            await _context.SaveChangesAsync();
+            await _taskService.RemoveAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool TaskItemExists(int id)
-        {
-          return (_context.TaskItem?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

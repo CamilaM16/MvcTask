@@ -1,9 +1,11 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using MvcTask.Data;
+using MvcTask.Models;
+using MvcTask.Services;
+
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<MvcTaskItemContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("MvcTaskItemContext") ?? throw new InvalidOperationException("Connection string 'MvcTaskItemContext' not found.")));
+var settings = builder.Configuration.GetSection("TodoListDataBase");
+builder.Services.Configure<TodoDataBaseSettings>(settings);
+builder.Services.AddSingleton<TaskService>();
+
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

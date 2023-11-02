@@ -8,10 +8,10 @@ public class TaskItem
 {
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string Id { get; set; }
+    public string? Id { get; set; }
 
     [BsonElement("taskTitle")]
-    public string? TaskTitle { get; set; }
+    public required string TaskTitle { get; set; }
 
     [BsonElement("startDate")]
     [DataType(DataType.Date)]

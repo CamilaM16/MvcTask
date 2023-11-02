@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MvcTask.Models;
 using MvcTask.Services;
+using System.Diagnostics;
 
 namespace MvcTask.Controllers
 {
@@ -41,7 +42,12 @@ namespace MvcTask.Controllers
         // GET: TaskList/Create
         public IActionResult Create()
         {
-            return View();
+            var model = new TaskItem
+            {
+                TaskTitle = "",
+                StartDate = DateTime.Now
+            };
+            return View(model);
         }
 
         // POST: TaskList/Create
@@ -53,7 +59,7 @@ namespace MvcTask.Controllers
             [Bind("Id,TaskTitle,StartDate,EndDate")] TaskItem taskItem
         )
         {
-            if (ModelState.IsValid)
+            if (ModelState.IsValid && taskItem != null && !string.IsNullOrEmpty(taskItem.TaskTitle))
             {
                 await _taskService.CreateAsync(taskItem);
                 return RedirectToAction(nameof(Index));
@@ -135,6 +141,17 @@ namespace MvcTask.Controllers
         {
             await _taskService.RemoveAsync(id);
             return RedirectToAction(nameof(Index));
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(
+                new ErrorViewModel
+                {
+                    RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+                }
+            );
         }
     }
 }
